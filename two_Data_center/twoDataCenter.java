@@ -83,9 +83,9 @@ public class twoDataCenter {
         Vm[] vm = new Vm[vms];
         
         for (int i = 0; i < vms; i++) {
-            vm[i] = new Vm(idShift + i, userId, hmips+mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
+            vm[i] = new Vm(idShift + i, userId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
             list.add(vm[i]);
-            hmips= hmips+500;
+            //hmips= hmips+500;
         }
         
         return list;
@@ -145,7 +145,7 @@ public class twoDataCenter {
 		for(int i=0;i<cloudlets;i++){
 			Random rObj = new Random();
 			
-			cloudlet[i] = new Cloudlet(idShift+i, (length+showRandomInteger(START, END,rObj)), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			cloudlet[i] = new Cloudlet(idShift+i,showRandomInteger(1, 2,rObj),(length+showRandomInteger(START, END,rObj)), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
@@ -277,48 +277,122 @@ public class twoDataCenter {
 			CloudSim.init(num_user, calendar, trace_flag);
 
 			// Second step: Create 3 Datacenters
-			//@SuppressWarnings("unused")
+			@SuppressWarnings("unused")
 			Datacenter datacenter0 = createDatacenter("BaseStation_0",1);
-			//@SuppressWarnings("unused")
+			@SuppressWarnings("unused")
 			Datacenter datacenter1 = createDatacenter("BaseStation_1",1);
 			//@SuppressWarnings("unused")
-			Datacenter datacenter2 = createDatacenter("BaseStation_2",1);
+			//Datacenter datacenter2 = createDatacenter("BaseStation_2",1);
 			
 			//Third step: Create Broker
 			DatacenterBroker broker1 = createBroker("broker1");// create broker 1
-			vmlist1 = createVM_N(broker1.getId(), 5,2000, 1);// create 5 vm with mips of 1000(weak) and id starting from 1 in broker 1
+			vmlist1 = createVM_N(broker1.getId(), 5,2150, 1);
 			broker1.submitVmList(vmlist1);
+			
+			DatacenterBroker broker2 = createBroker("broker2");//create broker 2
+			vmlist2 = createVM_N(broker2.getId(), 5,3000, 1001);
+			broker2.submitVmList(vmlist2);
+			
+			
+			//vmlist1 = createVM_N(broker1.getId(), 5,4000, 1);// create 5 vm with mips of 4000(weak) and id starting from 1 in broker 1
+			// create 5 vm with mips of 2000(strong) and id starting from 1001 in broker 2
+			
+			
+			//broker1.submitVmList(vmlist1);
 			
 			
 			Random randomTaskObject = new Random();// random task generator object
-			int startingRange = 1;
-			int endingRange = 5;
+
+			cloudletList1 = createCloudlet(broker1.getId(),10,100,200,1);// this is the arrival queue where cloudlets length varies from 2100-2200
 			
 			
 			
-			cloudletList1 = createCloudlet(broker1.getId(), generateTasksRandomly(startingRange, endingRange,randomTaskObject),100,200,1);// cloudlet length from 1100-1200
-			//taskList = createVTasks(broker1.getId(), 6, 100, 200, 1);
-			broker1.submitCloudletList(cloudletList1); // submitting cloudlets to a datacenter.
 			
 			
-			int minOversubcribe = 5;
-			int maxOversubsribe = 10;
 			
+			for(Cloudlet cloudlet:cloudletList1) {
 				
-			DatacenterBroker broker2 = createBroker("broker2");//create broker 2
-			vmlist2 = createVM_N(broker2.getId(), generateTasksRandomly(minOversubcribe, maxOversubsribe,randomTaskObject), 15000, 1001);// create 5 vm with mips of 2000(strong) and id starting from 1001 in broker 2
-			broker2.submitVmList(vmlist2);
-			cloudletList2 = createCloudlet(broker2.getId(), 5,100,200,1001);
-			broker2.submitCloudletList(cloudletList2);
+				System.out.println("****** cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength() +" Arrival time " +cloudlet.getWallClockTime());
+			}
 			
 			
+			ArrayList<Cloudlet> tempList1 = new ArrayList<Cloudlet>();
+			ArrayList<Cloudlet> tempList2 = new ArrayList<Cloudlet>();
+			
+			
+			// load balancer checks the deadlines and create list for base stations
+			
+			//double EstExeTime[]={0.5, 0.7};
+			
+			//double slacktime = 0.25;
+			
+			for(Cloudlet cloudlet:cloudletList1)
+			{
+				
+				if(cloudlet.getCloudletLength()<= 2150)
+				{
+					cloudlet.setUserId(broker1.getId());
+					tempList1.add(cloudlet);
+				}
+				else {
+					cloudlet.setUserId(broker2.getId());
+					tempList2.add(cloudlet);
+					
+				}
+			}
+			
+			
+			System.out.println("@@@@@@ TempList1 size "+tempList1.size());
+			System.out.println("@@@@@@ TempList2 size "+tempList2.size());
+			
+			
+			for(Cloudlet cloudlet:tempList1) {
+				
+				System.out.println("&&&&&& cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
+			}
+			
+			
+			
+			for(Cloudlet cloudlet:tempList2) {
+				
+				System.out.println("++++ cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
+			}
+			
+			
+			
+			
+			
+
+			
+			//cloudletList2 = createCloudlet(broker1.getId(),5,100,200,1);
+			//cloudletList3 = createCloudlet(broker2.getId(),5,100,200,1001);
+			
+			
+			//taskList = createVTasks(broker1.getId(), 6, 100, 200, 1);
+			broker1.submitCloudletList(tempList1); // submitting cloudlets to a Base Station 0 where tasks with deadline less than or equal 2 sec.
+			
+			
+			broker2.submitCloudletList(tempList2); // submitting cloudlets to a Base Station 01where tasks with deadline greater than 2 sec.
+			
+			int minOversubcribe = 3;
+			int maxOversubsribe = 6;
+			
+			//generateTasksRandomly(minOversubcribe, maxOversubsribe,randomTaskObject)	
+			
+			
+			
+			//cloudletList2 = createCloudlet(broker2.getId(),5,100,200,1001);
+			
+			
+			
+			/*
 			DatacenterBroker broker3 = createBroker("broker3");//create broker 2
 			vmlist3 = createVM_N(broker3.getId(), 5, 4000, 1001);// create 5 vm with mips of 2000(strong) and id starting from 1001 in broker 2
 			broker3.submitVmList(vmlist3);
 			cloudletList3 = createCloudlet(broker3.getId(), 5,100,200,2001);
 			
 			broker3.submitCloudletList(cloudletList3);
-			
+			*/
 			
 			
 			//DatacenterBroker broker3 = createBroker("broker3");//create broker 3
@@ -382,7 +456,7 @@ public class twoDataCenter {
 			//List<VTasks> newList1 = broker1.getVTasksReceivedList();
 			
 			 newList.addAll(broker2.getCloudletReceivedList());
-			 newList.addAll(broker3.getCloudletReceivedList());
+			 //newList.addAll(broker3.getCloudletReceivedList());
 
 			CloudSim.stopSimulation();
 
@@ -413,11 +487,11 @@ public class twoDataCenter {
 
 		// 3. Create PEs and add these into the list.
 		//for a quad-core machine, a list of 4 PEs is required:
-		peList1.add(new Pe(0, new PeProvisionerSimple(20000))); // need to store Pe id and MIPS Rating
-		peList1.add(new Pe(1, new PeProvisionerSimple(10000)));
-		peList1.add(new Pe(2, new PeProvisionerSimple(40000)));
-		peList1.add(new Pe(3, new PeProvisionerSimple(40000)));
-		peList1.add(new Pe(4, new PeProvisionerSimple(50000))); // need to store Pe id and MIPS Rating
+		peList1.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
+		peList1.add(new Pe(1, new PeProvisionerSimple(mips)));
+		peList1.add(new Pe(2, new PeProvisionerSimple(mips)));
+		peList1.add(new Pe(3, new PeProvisionerSimple(mips)));
+		peList1.add(new Pe(4, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
 		
 		//peList1.add(new Pe(5, new PeProvisionerSimple(mips)));
 		//peList1.add(new Pe(6, new PeProvisionerSimple(mips)));
@@ -618,3 +692,4 @@ public class twoDataCenter {
         }
     }
 }
+
