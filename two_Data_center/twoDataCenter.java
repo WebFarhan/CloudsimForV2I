@@ -10,6 +10,8 @@
 
 package org.cloudbus.cloudsim.examples;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -38,6 +40,7 @@ import org.cloudbus.cloudsim.VmSchedulerTimeShared;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.core.SimEvent;
+import org.cloudbus.cloudsim.lists.VmList;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
@@ -52,7 +55,7 @@ public class twoDataCenter {
 	/** The cloudlet list. */
 	private static List<Cloudlet> cloudletList1,cloudletList2,cloudletList3;
 	
-	private static List<VTasks> taskList;
+	//private static List<VTasks> taskList;
 
 	/** The vmlist. */
 	private static List<Vm> vmlist1,vmlist2,vmlist3;
@@ -145,7 +148,7 @@ public class twoDataCenter {
 		for(int i=0;i<cloudlets;i++){
 			Random rObj = new Random();
 			
-			cloudlet[i] = new Cloudlet(idShift+i,showRandomInteger(1, 2,rObj),(length+showRandomInteger(START, END,rObj)), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			cloudlet[i] = new Cloudlet(idShift+i,(length+showRandomInteger(START, END,rObj)),showRandomDouble(0.4, 1.5,rObj), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
@@ -155,7 +158,7 @@ public class twoDataCenter {
 	}
 	 
 	
-	
+	/*
 	// creating the tasks(vTasks) for base stations currently not used
 		private static List<VTasks> createVTasks(int userId, int numOfTasks, int START, int END, int idShift){
 			// Creates a container to store Cloudlets
@@ -181,7 +184,7 @@ public class twoDataCenter {
 
 			return list;
 		}
-	
+	*/
 	
 	//function for randomly generate task for different task arriving situations. This can be used for creating over subscribe situation.
 	private static int generateTasksRandomly(int aStart, int aEnd, Random aRandom){
@@ -212,51 +215,26 @@ public class twoDataCenter {
 	    return randomNumber;
 	  }
 	
-	//customized cloudlet creation for testing
-	/*
-	private static List<Cloudlet> create3Cloudlet(int userId){
-		// Creates a container to store Cloudlets
-		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
-		
-		//task 1(Cloudlets) parameters
-		long length1 = 1000;
-		long fileSize1 = 300;
-		long outputSize1 = 300;
-		int pesNumber1 = 1;
-		UtilizationModel utilizationModel = new UtilizationModelFull();
-		
-		Cloudlet[] cloudlet = new Cloudlet[3];
-		
-		cloudlet[0] = new Cloudlet(0, length1, pesNumber1, fileSize1, outputSize1, utilizationModel, utilizationModel, utilizationModel);
-		cloudlet[0].setUserId(userId);
-		list.add(cloudlet[0]);
-		
-		//task 2(Cloudlets) parameters
-		long length2 = 1000;
-		long fileSize2 = 300;
-		long outputSize2 = 300;
-		int pesNumber2 = 1;
-
-		
-		cloudlet[1] = new Cloudlet(1, length2, pesNumber2, fileSize2, outputSize2, utilizationModel, utilizationModel, utilizationModel);
-		cloudlet[1].setUserId(userId);
-		list.add(cloudlet[1]);
-		
-		
-		//task 3(Cloudlets) parameters
-		long length3 = 1000;
-		long fileSize3 = 300;
-		long outputSize3 = 300;
-		int pesNumber3 = 1;
-		
-		cloudlet[2] = new Cloudlet(2, length3, pesNumber3, fileSize3, outputSize3, utilizationModel, utilizationModel, utilizationModel);
-		cloudlet[2].setUserId(userId);
-		list.add(cloudlet[2]);
-		
-		return list;
-	}
-	*/
 	
+	public static double round(double value, int places) {
+	    if (places < 0) throw new IllegalArgumentException();
+
+	    BigDecimal bd = new BigDecimal(value);
+	    bd = bd.setScale(places, RoundingMode.HALF_UP);
+	    return bd.doubleValue();
+	}
+	
+	private static double showRandomDouble(double aStart, double aEnd, Random aRandom){
+	    if (aStart > aEnd) {
+	      throw new IllegalArgumentException("Start cannot exceed End.");
+	    }
+
+	    Random r = new Random();
+	    double randomValue = aStart + (aEnd - aStart) * r.nextDouble();
+	    
+	    
+	    return round(randomValue, 2);//randomValue;
+	  }
 
 	////////////////////////// STATIC METHODS ///////////////////////
 
@@ -286,11 +264,13 @@ public class twoDataCenter {
 			
 			//Third step: Create Broker
 			DatacenterBroker broker1 = createBroker("broker1");// create broker 1
-			vmlist1 = createVM_N(broker1.getId(), 5,2150, 1);
+			int vmMips1 = 2500;
+			vmlist1 = createVM_N(broker1.getId(), 5,vmMips1, 1);
 			broker1.submitVmList(vmlist1);
 			
 			DatacenterBroker broker2 = createBroker("broker2");//create broker 2
-			vmlist2 = createVM_N(broker2.getId(), 5,3000, 1001);
+			int vmMips2 = 4000;
+			vmlist2 = createVM_N(broker2.getId(), 5,vmMips2, 1001);
 			broker2.submitVmList(vmlist2);
 			
 			
@@ -299,20 +279,14 @@ public class twoDataCenter {
 			
 			
 			//broker1.submitVmList(vmlist1);
-			
-			
+						
 			Random randomTaskObject = new Random();// random task generator object
 
-			cloudletList1 = createCloudlet(broker1.getId(),10,100,200,1);// this is the arrival queue where cloudlets length varies from 2100-2200
+			cloudletList1 = createCloudlet(broker1.getId(),15,100,200,1);// this is the arrival queue where cloudlets length varies from 2100-2200
 			
 			
-			
-			
-			
-			
-			for(Cloudlet cloudlet:cloudletList1) {
-				
-				System.out.println("****** cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength() +" Arrival time " +cloudlet.getWallClockTime());
+			for(Cloudlet cloudlet:cloudletList1) {				
+				System.out.println("****** cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength() + " Start time " +cloudlet.getExecStartTime());
 			}
 			
 			
@@ -324,11 +298,28 @@ public class twoDataCenter {
 			
 			//double EstExeTime[]={0.5, 0.7};
 			
-			//double slacktime = 0.25;
+			double slacktime = 0.25;
 			
 			for(Cloudlet cloudlet:cloudletList1)
 			{
+				//Long l2=Long.valueOf(vmMips1);
 				
+				double executionTimeVM1 = cloudlet.getCloudletLength() / (double)vmMips1;
+				double executionTimeVM2 = cloudlet.getCloudletLength() / (double)vmMips2;
+				System.out.println("%%%%%% Execution Time on VM1 "+executionTimeVM1 + " ***** Execution Time on VM2 " + executionTimeVM2 + "Deadline : " + cloudlet.getDeadline());
+				
+				
+				
+				if(cloudlet.getDeadline() > (executionTimeVM1+slacktime)) {
+					cloudlet.setUserId(broker1.getId());
+					tempList1.add(cloudlet);
+				}
+				else if(cloudlet.getDeadline() > (executionTimeVM2+slacktime)){
+					cloudlet.setUserId(broker2.getId());
+					tempList2.add(cloudlet);
+				}
+			
+				/*
 				if(cloudlet.getCloudletLength()<= 2150)
 				{
 					cloudlet.setUserId(broker1.getId());
@@ -336,9 +327,9 @@ public class twoDataCenter {
 				}
 				else {
 					cloudlet.setUserId(broker2.getId());
-					tempList2.add(cloudlet);
-					
+					tempList2.add(cloudlet);					
 				}
+				*/
 			}
 			
 			
@@ -350,19 +341,11 @@ public class twoDataCenter {
 				
 				System.out.println("&&&&&& cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
 			}
-			
-			
+						
 			
 			for(Cloudlet cloudlet:tempList2) {
-				
 				System.out.println("++++ cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
 			}
-			
-			
-			
-			
-			
-
 			
 			//cloudletList2 = createCloudlet(broker1.getId(),5,100,200,1);
 			//cloudletList3 = createCloudlet(broker2.getId(),5,100,200,1001);
@@ -374,16 +357,11 @@ public class twoDataCenter {
 			
 			broker2.submitCloudletList(tempList2); // submitting cloudlets to a Base Station 01where tasks with deadline greater than 2 sec.
 			
-			int minOversubcribe = 3;
-			int maxOversubsribe = 6;
+			//int minOversubcribe = 3;
+			//int maxOversubsribe = 6;
 			
 			//generateTasksRandomly(minOversubcribe, maxOversubsribe,randomTaskObject)	
-			
-			
-			
 			//cloudletList2 = createCloudlet(broker2.getId(),5,100,200,1001);
-			
-			
 			
 			/*
 			DatacenterBroker broker3 = createBroker("broker3");//create broker 2
@@ -474,8 +452,7 @@ public class twoDataCenter {
 	private static Datacenter createDatacenter(String name, int hostNumber){
 
 		// Here are the steps needed to create a PowerDatacenter:
-		// 1. We need to create a list to store one or more
-		//    Machines
+		// 1. We need to create a list to store one or more machines
 		List<Host> hostList = new ArrayList<Host>();
 
 		// 2. A Machine contains one or more PEs or CPUs/Cores. Therefore, should
@@ -581,7 +558,7 @@ public class twoDataCenter {
 		Log.printLine();
 		Log.printLine("========== OUTPUT ==========");
 		Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +indent+
-				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time");
+				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time"+indent+indent+"Deadline");
 
 		DecimalFormat dft = new DecimalFormat("###.##");
 		for (int i = 0; i < size; i++) {
@@ -593,7 +570,7 @@ public class twoDataCenter {
 
 				Log.printLine( indent + indent+cloudlet.getResourceName(cloudlet.getResourceId()) + indent + indent + indent + cloudlet.getVmId() +
 						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
-						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime()));
+						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+indent+cloudlet.getDeadline());
 			}
 		}
 
@@ -607,7 +584,7 @@ public class twoDataCenter {
         private List<Vm> vmList;
         private List<Cloudlet> cloudletList;
         
-        private List<VTasks> vtaskList;
+        //private List<VTasks> vtaskList;
         
         private DatacenterBroker broker;
         
@@ -667,21 +644,22 @@ public class twoDataCenter {
             return cloudletList;
         }
         
-        
+        /*
         //for vtasklist
         public List<VTasks> getVTaskList() {
             return vtaskList;
         }
-        
+        */
         
         protected void setCloudletList(List<Cloudlet> cloudletList) {
             this.cloudletList = cloudletList;
         }
         
+        /*
         protected void setVTaskList(List<VTasks> vtaskList) {
             this.vtaskList = vtaskList;
         }
-        
+        */
         
         public DatacenterBroker getBroker() {
             return broker;
