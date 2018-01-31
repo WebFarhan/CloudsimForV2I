@@ -19,7 +19,7 @@ import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.core.SimEvent;
-import org.cloudbus.cloudsim.examples.VTasks;
+//import org.cloudbus.cloudsim.examples.VTasks;
 import org.cloudbus.cloudsim.lists.CloudletList;
 import org.cloudbus.cloudsim.lists.VmList;
 
@@ -44,7 +44,7 @@ public class DatacenterBroker extends SimEntity {
 	
 	
 	/** The vtasks list. */
-	protected List<? extends VTasks> vtaskList;
+	//protected List<? extends VTasks> vtaskList;
 	
 	
 
@@ -53,7 +53,7 @@ public class DatacenterBroker extends SimEntity {
 	
 	
 	/** The vtasks submitted list. */
-	protected List<? extends VTasks> vtaskSubmittedList;
+	//protected List<? extends VTasks> vtaskSubmittedList;
 	
 	
 
@@ -64,7 +64,7 @@ public class DatacenterBroker extends SimEntity {
 	
 	
 	/** The vtasks received list. */
-	protected List<? extends VTasks> vtaskReceivedList;
+	//protected List<? extends VTasks> vtaskReceivedList;
 	
 	
 
@@ -396,6 +396,66 @@ public class DatacenterBroker extends SimEntity {
 	    return randomNumber;
 	  }
 	
+	//SJF alogorithm implementation
+	protected List<Cloudlet> SJF(){
+		
+		List<Cloudlet> sJFsortList = new ArrayList<Cloudlet>();
+		
+		ArrayList<Cloudlet> sjftempList = new ArrayList<Cloudlet>();
+		
+		//adding
+	    for (Cloudlet cloudlet : getCloudletList()) {
+					sjftempList.add(cloudlet);
+		}
+	    
+	    int sjftotalCloudlets = sjftempList.size();
+		
+		for(int i=0;i<sjftotalCloudlets;i++) {
+			Cloudlet smallestCloudlet = sjftempList.get(0);
+			for(Cloudlet checkCloudlet:sjftempList) {
+				if(smallestCloudlet.getCloudletLength()>checkCloudlet.getCloudletLength()) {
+					smallestCloudlet = checkCloudlet;
+				}
+			}
+			
+			sJFsortList.add(smallestCloudlet);
+			sjftempList.remove(smallestCloudlet);
+		}
+		
+		return sJFsortList;
+		
+	}
+	
+	//
+	protected List<Cloudlet> PrioritySchedule(){
+		
+		List<Cloudlet> prSortList = new ArrayList<Cloudlet>();
+		
+		ArrayList<Cloudlet> prTempList = new ArrayList<Cloudlet>();
+		
+		//adding
+	    for (Cloudlet cloudlet : getCloudletList()) {
+	    		prTempList.add(cloudlet);
+		}
+	    
+	    int prtotalCloudlets = prTempList.size();
+		
+	    for(int i=0;i<prtotalCloudlets;i++) {
+			Cloudlet highestPriorityCloudlet = prTempList.get(0);
+			for(Cloudlet checkCloudlet:prTempList) {
+				if(highestPriorityCloudlet.getPriority()<checkCloudlet.getPriority()) {
+					highestPriorityCloudlet = checkCloudlet;
+				}
+			}
+			
+			prSortList.add(highestPriorityCloudlet);
+			prTempList.remove(highestPriorityCloudlet);
+		}
+		
+		return prSortList;
+		
+	}
+	
 	
 	/**
 	 * Submit cloudlets to the created VMs.
@@ -424,6 +484,7 @@ public class DatacenterBroker extends SimEntity {
 		
 		int totalCloudlets = tempList.size();
 		//sorting the cloudlets from small to big in cloudlet length
+		/*
 		for(int i=0;i<totalCloudlets;i++) {
 			Cloudlet smallestCloudlet = tempList.get(0);
 			for(Cloudlet checkCloudlet:tempList) {
@@ -435,12 +496,38 @@ public class DatacenterBroker extends SimEntity {
 			sortList.add(smallestCloudlet);
 			tempList.remove(smallestCloudlet);
 		}
+		*/
+		
+		
+		
+		//sorting the cloudlets according to priority
+		for(int i=0;i<totalCloudlets;i++) {
+			Cloudlet highestPriorityCloudlet = tempList.get(0);
+			for(Cloudlet checkCloudlet:tempList) {
+				if(highestPriorityCloudlet.getPriority()<checkCloudlet.getPriority()) {
+					highestPriorityCloudlet = checkCloudlet;
+				}
+			}
+			
+			sortList.add(highestPriorityCloudlet);
+			tempList.remove(highestPriorityCloudlet);
+		}
 		
 		
 		// for debugging purpose
 		int count = 1;
-		for(Cloudlet printCloudlet: sortList) {
-			Log.printLine(count+" Cloudlet ID: "+printCloudlet.getCloudletId()+", Cloudlet Length: "+printCloudlet.getCloudletLength());
+		
+		
+		List<Cloudlet> reieveListSJF = new ArrayList<Cloudlet>();
+		List<Cloudlet> reieveListPR = new ArrayList<Cloudlet>();
+		
+		reieveListSJF = SJF();
+		reieveListPR = PrioritySchedule();
+		
+		
+		
+		for(Cloudlet printCloudlet: reieveListPR) {
+			Log.printLine(count+" Cloudlet ID: "+printCloudlet.getCloudletId()+", Cloudlet Length: "+printCloudlet.getCloudletLength()+ ", Cloudlet Priority: "+printCloudlet.getPriority());
 			count++;
 		}
 		
@@ -458,7 +545,7 @@ public class DatacenterBroker extends SimEntity {
 		
 		
 		
-		for (Cloudlet cloudlet : sortList) {
+		for (Cloudlet cloudlet : reieveListPR) {
 			Vm vm;
 			
 			// if user didn't bind this cloudlet and it has not been executed yet
@@ -479,8 +566,7 @@ public class DatacenterBroker extends SimEntity {
 					+ cloudlet.getCloudletId() + " to VM #" + vm.getId());
 			
 			
-
-			
+	
 			
 			//for(Vm virm: getVmsCreatedList()) {
 				//if(virm.getMips()>cloudlet.getCloudletLength()) {// this condition decides vms capacity for assiging task to vm
@@ -524,11 +610,6 @@ public class DatacenterBroker extends SimEntity {
 				
 			
 			}*/
-			
-			
-			
-			
-			
 			
 			
 			Log.printLine("******************* Vm ID : " +vm.getId()+" Mips of Vm : "+vm.getMips()+" Cloudlet ID "+ cloudlet.getCloudletId()+" cloudlet size : "+cloudlet.getCloudletLength());
@@ -663,10 +744,10 @@ public class DatacenterBroker extends SimEntity {
 	}
 
 	//razin
-	@SuppressWarnings("unchecked")
-	public <T extends VTasks> List<T> getVTasksList() {
-		return (List<T>) vtaskList;
-	}
+	//@SuppressWarnings("unchecked")
+	//public <T extends VTasks> List<T> getVTasksList() {
+	//	return (List<T>) vtaskList;
+	//}
 	
 	
 	
@@ -687,9 +768,9 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param cloudletList the new cloudlet list
 	 */
-	protected <T extends VTasks> void setVTaskList(List<T> vtaskList) {
-		this.vtaskList = vtaskList;
-	}
+	//protected <T extends VTasks> void setVTaskList(List<T> vtaskList) {
+	//	this.vtaskList = vtaskList;
+	//}
 	
 	
 	
@@ -713,10 +794,10 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @return the cloudlet submitted list
 	 */
-	@SuppressWarnings("unchecked")
-	public <T extends VTasks> List<T> getVTasksSubmittedList() {
-		return (List<T>) vtaskSubmittedList;
-	}
+	//@SuppressWarnings("unchecked")
+	//public <T extends VTasks> List<T> getVTasksSubmittedList() {
+	//	return (List<T>) vtaskSubmittedList;
+	//}
 	
 	
 	
@@ -741,9 +822,9 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param cloudletSubmittedList the new cloudlet submitted list
 	 */
-	protected <T extends VTasks> void setVTasksSubmittedList(List<T> vtaskSubmittedList) {
-		this.vtaskSubmittedList = vtaskSubmittedList;
-	}
+	//protected <T extends VTasks> void setVTasksSubmittedList(List<T> vtaskSubmittedList) {
+	//	this.vtaskSubmittedList = vtaskSubmittedList;
+	//}
 	
 	
 	
@@ -766,10 +847,10 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @return the cloudlet received list
 	 */
-	@SuppressWarnings("unchecked")
-	public <T extends VTasks> List<T> getVTasksReceivedList() {
-		return (List<T>) vtaskReceivedList;
-	}
+	//@SuppressWarnings("unchecked")
+	///public <T extends VTasks> List<T> getVTasksReceivedList() {
+	//	return (List<T>) vtaskReceivedList;
+	//}
 	
 	
 	
@@ -792,9 +873,9 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param cloudletReceivedList the new cloudlet received list
 	 */
-	protected <T extends VTasks> void setVTasksReceivedList(List<T> vtaskReceivedList) {
-		this.vtaskReceivedList = vtaskReceivedList;
-	}
+	//protected <T extends VTasks> void setVTasksReceivedList(List<T> vtaskReceivedList) {
+	//	this.vtaskReceivedList = vtaskReceivedList;
+	//}
 	
 	
 	

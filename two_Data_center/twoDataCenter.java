@@ -141,14 +141,17 @@ public class twoDataCenter {
 		long fileSize = 300;
 		long outputSize = 300;
 		int pesNumber = 1;
+		double deadline = 0.0;
+		double priority = 0.0;
 		UtilizationModel utilizationModel = new UtilizationModelFull();
 
 		Cloudlet[] cloudlet = new Cloudlet[cloudlets];
 
 		for(int i=0;i<cloudlets;i++){
 			Random rObj = new Random();
-			
-			cloudlet[i] = new Cloudlet(idShift+i,(length+showRandomInteger(START, END,rObj)),showRandomDouble(0.4, 1.5,rObj), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			deadline = showRandomDouble(0.4, 1.5,rObj);
+			priority = Math.pow((1/Math.E),deadline);
+			cloudlet[i] = new Cloudlet(idShift+i,(length+showRandomInteger(START, END,rObj)),deadline,priority ,pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
@@ -309,8 +312,8 @@ public class twoDataCenter {
 				System.out.println("%%%%%% Execution Time on VM1 "+executionTimeVM1 + " ***** Execution Time on VM2 " + executionTimeVM2 + "Deadline : " + cloudlet.getDeadline());
 				
 				
-				
 				if(cloudlet.getDeadline() > (executionTimeVM1+slacktime)) {
+					
 					cloudlet.setUserId(broker1.getId());
 					tempList1.add(cloudlet);
 				}
@@ -558,7 +561,7 @@ public class twoDataCenter {
 		Log.printLine();
 		Log.printLine("========== OUTPUT ==========");
 		Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +indent+
-				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time"+indent+indent+"Deadline");
+				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time"+indent+indent+"Deadline"+indent+indent+"Priority");
 
 		DecimalFormat dft = new DecimalFormat("###.##");
 		for (int i = 0; i < size; i++) {
@@ -570,7 +573,7 @@ public class twoDataCenter {
 
 				Log.printLine( indent + indent+cloudlet.getResourceName(cloudlet.getResourceId()) + indent + indent + indent + cloudlet.getVmId() +
 						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
-						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+indent+cloudlet.getDeadline());
+						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+indent+cloudlet.getDeadline()+indent+indent+cloudlet.getPriority());
 			}
 		}
 
