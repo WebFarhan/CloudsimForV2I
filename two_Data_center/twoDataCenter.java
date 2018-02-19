@@ -10,6 +10,14 @@
 
 package org.cloudbus.cloudsim.examples;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -46,6 +54,9 @@ import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 
+import com.sun.java_cup.internal.runtime.Scanner;
+import com.sun.java_cup.internal.runtime.Symbol;
+
 
 /**
  * An example showing how to create
@@ -55,21 +66,17 @@ public class twoDataCenter {
 
 	/** The cloudlet list. */
 	private static List<Cloudlet> cloudletList1,cloudletList2,cloudletList3;
-	
+	private static int SEED = 120;
 	//private static List<VTasks> taskList;
 
 	/** The vmlist. */
 	private static List<Vm> vmlist1,vmlist2,vmlist3,vmlist4;
 	private static List<List<Vm>> VCs;
 	
-	
-	//All the instance share cloudletNewArrivalQueue and cloudletBatchqueue, both of them are synchronized list
-	private static List<Cloudlet> cloudletNewArrivalQueue = Collections.synchronizedList(new ArrayList<Cloudlet>());
-	private static List<Cloudlet> cloudletBatchQueue = Collections.synchronizedList(new ArrayList<Cloudlet>());
-	
-	public static Properties prop = new Properties();
-	
 
+	public static Properties prop = new Properties();
+
+	
 	private static List<Vm> createVM_N(int userId, int vms, int mips, int idShift) {
         //Creates a container to store VMs. This list is passed to the broker later
         LinkedList<Vm> list = new LinkedList<Vm>();
@@ -95,31 +102,34 @@ public class twoDataCenter {
     }
 	
     // creating the tasks(cloudlets) for base stations
-	private static List<Cloudlet> createCloudlet(int userId, int cloudlets, int START, int END, int idShift){
+	private static List<Cloudlet> createCloudlet(int userId, int cloudlets, int START, int END, int idShift, long seed){
 		// Creates a container to store Cloudlets
 		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
 
 		//tasks(Cloudlets) parameters
-		long length = 1000; // mips of cloudlet
+		long length = 1000; // mi of cloudlet
 		long fileSize = 300;
 		long outputSize = 300;
 		int pesNumber = 1;
 		double deadline = 0.0;
 		double priority = 0.0;
 		double xVal=0.0;
+		//long seed1 = 500;
 		UtilizationModel utilizationModel = new UtilizationModelFull();
 
 		Cloudlet[] cloudlet = new Cloudlet[cloudlets];
 
 		for(int i=0;i<cloudlets;i++){
 			Random rObj = new Random();
-			deadline = showRandomDouble(0.4, 1.5,rObj);
+			rObj.setSeed(seed);
+			deadline = showRandomDouble(0.4, 1.5);
 			priority = Math.pow((1/Math.E),deadline);
 			xVal = showRandomInteger(1,4,rObj);
 			cloudlet[i] = new Cloudlet(idShift+i,(length+showRandomInteger(START, END,rObj)),deadline,priority,xVal,showRandomInteger(0,1,rObj),showRandomInteger(120,120,rObj),pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
+			seed--;
 		}
 
 		return list;
@@ -140,7 +150,6 @@ public class twoDataCenter {
 	 }	
 		
 		
-	
 	private static int showRandomInteger(int aStart, int aEnd, Random aRandom){
 	    if (aStart > aEnd) {
 	      throw new IllegalArgumentException("Start cannot exceed End.");
@@ -154,6 +163,7 @@ public class twoDataCenter {
 	    return randomNumber;
 	  }
 	
+	//calculate deadline for a task with respect to Base Station range.
 	public static double Deadline(Cloudlet a, Datacenter d) {
 		
 		double deadline = d.getRange()/(a.getvSpeed()*1609.34);
@@ -161,7 +171,6 @@ public class twoDataCenter {
 		System.out.println("------Deadline of task : "+a.getCloudletId()+ " is : "+(deadline*3600));
 		return (deadline*3600);
 	}
-	
 	
 	
 	public static double round(double value, int places) {
@@ -172,7 +181,7 @@ public class twoDataCenter {
 	    return bd.doubleValue();
 	}
 	
-	private static double showRandomDouble(double aStart, double aEnd, Random aRandom){
+	private static double showRandomDouble(double aStart, double aEnd){
 	    if (aStart > aEnd) {
 	      throw new IllegalArgumentException("Start cannot exceed End.");
 	    }
@@ -184,6 +193,14 @@ public class twoDataCenter {
 	    return round(randomValue, 2);//randomValue;
 	  }
 
+	private static double zScoreCalculation(double mu, double sigma, double value) {
+		
+		double result = 0;
+		
+		result = (value - mu)/sigma;
+		
+		return round(result,2);
+	}
 	////////////////////////// STATIC METHODS ///////////////////////
 
 	/**
@@ -191,25 +208,51 @@ public class twoDataCenter {
 	 */
 	public static void main(String[] args) {
 		Log.printLine("Starting Simulation for V2I task processing...");
-
+		int number = 0;
+		
+		try
+		{
+		File file = new File("input.txt"); // input file
+		BufferedReader br = new BufferedReader(new FileReader(file));
+			try {
+				String NO_Trail = br.readLine();
+				number = Integer.parseInt(NO_Trail); 
+				
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		 
+			}
+			catch (FileNotFoundException fnfe)
+			{
+				System.out.println("File data.txt was not found!");
+			} 
+		
+		for(int i = 0;i <number;i++) {
 		try {
+			FileWriter fw = new FileWriter("ResultV2I.txt",true);
+			PrintWriter printWriter = new PrintWriter(fw);
+			
+			printWriter.println("Number of Total trial : " + number);
+			printWriter.println("Trial No : "+ i);
 			// First step: Initialize the CloudSim package. It should be called
 			// before creating any entities.
 			int num_user = 1;   // number of grid users
 			Calendar calendar = Calendar.getInstance();
 			boolean trace_flag = false;  // mean trace events
-			SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+			SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");// added by Razin
 
 			// Initialize the CloudSim library
 			CloudSim.init(num_user, calendar, trace_flag);
 
 			// Second step: Create 3 Datacenters
 			@SuppressWarnings("unused")
-			Datacenter datacenter0 = createDatacenter("BaseStation_0",1,0,60);//Base Station x coordinate 0
+			Datacenter datacenter0 = createDatacenter("BaseStation_0",1,0,60);//Base Station x coordinate 0 and range is 60 meter
 			@SuppressWarnings("unused")
-			Datacenter datacenter1 = createDatacenter("BaseStation_1",1,5,65);// Base Station x coordinate 5
-			//@SuppressWarnings("unused")
-			Datacenter datacenter2 = createDatacenter("BaseStation_2",1,-2.5,50);// Base Station x coordinate -2.5
+			Datacenter datacenter1 = createDatacenter("BaseStation_1",1,5,65);// Base Station x coordinate 5 and range is 65 meter
+			@SuppressWarnings("unused")
+			Datacenter datacenter2 = createDatacenter("BaseStation_2",1,-2.5,50);// Base Station x coordinate -2.5 and range is 50 meter
 			
 			//Third step: Create Broker
 			DatacenterBroker broker1 = createBroker("broker1");// create broker 1
@@ -227,115 +270,71 @@ public class twoDataCenter {
 			vmlist3 = createVM_N(broker3.getId(), 5,vmMips3, 2001);
 			broker3.submitVmList(vmlist3);
 			
-
-			int numTasksAdmitted = 20;
-			cloudletList1 = createCloudlet(broker1.getId(),numTasksAdmitted,100,200,1);// this is the arrival queue where cloudlets length varies from 600-700
+			int numTasksAdmitted = 10;// set the number of tasks coming to Base Station
+			cloudletList1 = createCloudlet(broker1.getId(),numTasksAdmitted,100,200,1,500);// this is the arrival buffer 
 			
 			
 			for(Cloudlet cloudlet:cloudletList1) {				
 				System.out.println("****** cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength() + " Start time " +cloudlet.getExecStartTime());
 			}
 			
-			
-			//vmlist4 = createVM_N(broker1.getId(), 5,4000, 5001);
-			
-			//cloudletList2 = createCloudlet(broker1.getId(),5,100,200,3000);
-			
+			// three batch queue for three Base Station
 			ArrayList<Cloudlet> batchQueBS1 = new ArrayList<Cloudlet>();
 			ArrayList<Cloudlet> batchQueBS2 = new ArrayList<Cloudlet>();
 			ArrayList<Cloudlet> batchQueBS3 = new ArrayList<Cloudlet>();
 			
+			double slacktime1 = 0.25;
+			double slacktime2 = 0.15;
+			double slacktime3 = 0.27;
+			int noTaskNotAllocated = 0;
 			
-			// load balancer checks the deadlines and create list for base stations
+			int taskMissDBS1 = 0;
+			int taskMissDBS2 = 0;
 			
-			//double EstExeTime[]={0.5, 0.7};
 			
-			double slacktime = 0.25;
-			int noTaskMissDeadline = 0;
+			double zScore = zScoreCalculation(65,9,54);
 			
+			//This for loop is the load balancer
 			for(Cloudlet cloudlet:cloudletList1)
 			{
 				//Long l2=Long.valueOf(vmMips1);
-				
 				double executionTimeVM1 = cloudlet.getCloudletLength() / (double)vmMips1;
 				double executionTimeVM2 = cloudlet.getCloudletLength() / (double)vmMips2;
 				double executionTimeVM3 = cloudlet.getCloudletLength() / (double)vmMips3;
 				
-				System.out.println("%%%%%% Execution Time on VM1 "+executionTimeVM1 + " ***** Execution Time on VM2 " + executionTimeVM2 + "Deadline : " + cloudlet.getDeadline());
-				
-				System.out.println(" Deadlines @@###@@@@@@@@@@@" + Deadline(cloudlet, datacenter0));
-				if(cloudlet.getDeadline()> (executionTimeVM1+slacktime)) {
-					//System.out.println("::::: Current time ::::: "+calendar.getTime());
-					
-					System.out.println(" Deadlines @@###@@@@@@@@@@@" + Deadline(cloudlet, datacenter0));
+				if(cloudlet.getDeadline()> (executionTimeVM1+slacktime1)) {
 					cloudlet.setUserId(broker1.getId());
 					batchQueBS1.add(cloudlet);
 				}
-				else if(cloudlet.getvHD()==1) {// vehicle is moving in right.
-					if( cloudlet.getDeadline() > (executionTimeVM2+slacktime)){
+				else if(cloudlet.getvHD()==1) {// task has its moving direction value.If it is 1 than it is moving right.
+					if( cloudlet.getDeadline() > (executionTimeVM2+slacktime2)){
 						cloudlet.setUserId(broker2.getId());
 						batchQueBS2.add(cloudlet);
 					}
-					else noTaskMissDeadline++;
+					else taskMissDBS1++;
 					
 				}
-				else if(cloudlet.getvHD()==0) {// vehicle is moving in left.
-					if(cloudlet.getDeadline() > (executionTimeVM3+slacktime)){
+				else if(cloudlet.getvHD()==0) {// task has its moving direction value.If it is 0 than it is moving left.
+					if(cloudlet.getDeadline() > (executionTimeVM3+slacktime3)){
 						cloudlet.setUserId(broker3.getId());
 						batchQueBS3.add(cloudlet);
 					}
-					else noTaskMissDeadline++;
+					else taskMissDBS2++;
 				}
 				else {
-					noTaskMissDeadline++;
+					noTaskNotAllocated++;
 				}
-
 			}
 			
-			System.out.println("@@@@@@ TempList1 size "+batchQueBS1.size());
-			System.out.println("@@@@@@ TempList2 size "+batchQueBS2.size());
-			
-			
-			for(Cloudlet cloudlet:batchQueBS1) {
-				
-				System.out.println("&&&&&& cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
-			}
-						
-			
-			for(Cloudlet cloudlet:batchQueBS2) {
-				System.out.println("++++ cloudlet ID "+cloudlet.getCloudletId() +" Cloudlet Length : " + cloudlet.getCloudletLength());
-			}
-			
-	
-			//taskList = createVTasks(broker1.getId(), 6, 100, 200, 1);
+		
+    		//taskList = createVTasks(broker1.getId(), 6, 100, 200, 1);
 			broker1.submitCloudletList(batchQueBS1); // submitting cloudlets to a Base Station 0 where tasks with deadline less than or equal 2 sec.
 			
 			broker2.submitCloudletList(batchQueBS2); // submitting cloudlets to a Base Station 01where tasks with deadline greater than 2 sec.
 			
 			broker3.submitCloudletList(batchQueBS3);
-			//int minOversubcribe = 3;
-			//int maxOversubsribe = 6;
-			
-			//generateTasksRandomly(minOversubcribe, maxOversubsribe,randomTaskObject)	
-			//cloudletList2 = createCloudlet(broker2.getId(),5,100,200,1001);
-			
-			/*
-			DatacenterBroker broker3 = createBroker("broker3");//create broker 2
-			vmlist3 = createVM_N(broker3.getId(), 5, 4000, 1001);// create 5 vm with mips of 2000(strong) and id starting from 1001 in broker 2
-			broker3.submitVmList(vmlist3);
-			cloudletList3 = createCloudlet(broker3.getId(), 5,100,200,2001);
-			
-			broker3.submitCloudletList(cloudletList3);
-			*/
-			
-			
-			//DatacenterBroker broker3 = createBroker("broker3");//create broker 3
-			//vmlist3 = createVM_N(broker3.getId(), 5, 3000, 2001);// create 5 vm with mips of 2000(strong) and id starting from 1001 in broker 2
-			//broker3.submitVmList(vmlist3);
-			//cloudletList3 = createCloudlet(broker3.getId(), 10,100,200,2001);
-			//broker3.submitCloudletList(cloudletList3);
-			
-			
+
+
 			// A thread that will create a new broker at 200 clock time
 		   /*	Runnable monitor = new Runnable() {
 					@Override
@@ -348,7 +347,7 @@ public class twoDataCenter {
 							}
 							try {
 								
-								
+	
 								Thread.sleep(100);
 								} catch (InterruptedException e) {
 									e.printStackTrace();
@@ -371,37 +370,47 @@ public class twoDataCenter {
 
 			// Fifth step: Starts the simulation
 			CloudSim.startSimulation();
-			
-			
-			//broker1.submitVmList(vmlist4);
-			//broker1.submitCloudletList(cloudletList2);
-			
-			//broker.submitVmList(vmlist2);
-			//broker.submitCloudletList(cloudletList2);
 
 			// Final step: Print results when simulation is over
 			List<Cloudlet> newList = broker1.getCloudletReceivedList();
 	
 			//List<VTasks> newList1 = broker1.getVTasksReceivedList();
 			
-			 newList.addAll(broker2.getCloudletReceivedList());
-			 newList.addAll(broker3.getCloudletReceivedList());
-			 
-			 //newList.addAll(broker3.getCloudletReceivedList());
+			newList.addAll(broker2.getCloudletReceivedList());
+			newList.addAll(broker3.getCloudletReceivedList());
 
 			CloudSim.stopSimulation();
 
-			printCloudletList(newList);
 			
-			double deadLineMissRate = noTaskMissDeadline / (double)numTasksAdmitted;
-			System.out.println("No of task missed deadline : "+ noTaskMissDeadline +" Deadline miss rate : "+ deadLineMissRate);
+			printCloudletList(newList,printWriter);
+			
+			double deadLineMissRate = noTaskNotAllocated / (double)numTasksAdmitted;
+			System.out.println("No of task not allocated : "+ noTaskNotAllocated +" Allocation miss rate : "+ deadLineMissRate);
+			printWriter.println("No of task not allocated : "+ noTaskNotAllocated +" Allocation miss rate : "+ deadLineMissRate);
+			
+			System.out.println("No of task missed deadline in Base Station 1 : " + taskMissDBS1);
+			printWriter.println("No of task missed deadline in Base Station 1 : " + taskMissDBS1);
+			
+			System.out.println("No of task missed deadline in Base Station 2 : " + taskMissDBS2);
+			printWriter.println("No of task missed deadline in Base Station 2 : " + taskMissDBS2);
+			
 			Log.printLine("V2I task processing finished!");
+			printWriter.println("V2I task processing finished!");
+			
+			//System.out.println("Z score :"+ zScore);
+			printWriter.println();//new line 
+			printWriter.close();
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
 			Log.printLine("The simulation has been terminated due to an unexpected error");
+			
 		}
+		
+	}//end of for loop
+		
+		
 	}
 
 	private static Datacenter createDatacenter(String name, int hostNumber, double x,double range){
@@ -425,17 +434,6 @@ public class twoDataCenter {
 		peList1.add(new Pe(3, new PeProvisionerSimple(mips)));
 		peList1.add(new Pe(4, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
 		
-		//peList1.add(new Pe(5, new PeProvisionerSimple(mips)));
-		//peList1.add(new Pe(6, new PeProvisionerSimple(mips)));
-		//peList1.add(new Pe(7, new PeProvisionerSimple(mips)));
-		
-		
-		//Another list, for a dual-core machine
-		//List<Pe> peList2 = new ArrayList<Pe>();
-
-		//peList2.add(new Pe(0, new PeProvisionerSimple(mips)));
-		//peList2.add(new Pe(1, new PeProvisionerSimple(mips)));
-
 		//4. Create Hosts with its id and list of PEs and add them to the list of machines
 		int hostId=0;
 		int ram = 8192; //host memory (MB) 8 GB given by Razin
@@ -505,31 +503,50 @@ public class twoDataCenter {
 	/**
 	 * Prints the Cloudlet objects
 	 * @param list  list of Cloudlets
+	 * @throws IOException 
 	 */
-	private static void printCloudletList(List<Cloudlet> list) {
+	private static void printCloudletList(List<Cloudlet> list, PrintWriter pw) throws IOException {
 		int size = list.size();
 		Cloudlet cloudlet;
-
+		
+		//FileWriter fileWriter = new FileWriter("ResultV2I.txt",true);
+		//PrintWriter printWriter = new PrintWriter(fileWriter);	
+		
+		
 		String indent = "    ";
 		Log.printLine();
+		pw.println();//file write
 		Log.printLine("========== OUTPUT ==========");
+		pw.println("========== OUTPUT ==========");
 		Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +indent+
 				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time"+indent+indent+"Deadline"+indent+indent+"Priority");
-
+        
+		pw.println("Cloudlet ID" + indent + "STATUS" + indent +indent+
+				"Data center ID" + indent+indent+ "VM ID" + indent + indent+"  "+ "Time"+indent+indent +"Task Length"+ indent+indent + "Start Time" + indent + "Finish Time"+indent+indent+"Deadline"+indent+indent+"Priority");
+		
+		
 		DecimalFormat dft = new DecimalFormat("###.##");
 		for (int i = 0; i < size; i++) {
 			cloudlet = list.get(i);
 			Log.print(indent + cloudlet.getCloudletId() + indent + indent);
+			
+			pw.print(indent + cloudlet.getCloudletId() + indent + indent);
 
 			if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS){
 				Log.print("SUCCESS");
-
+				pw.print("SUCCESS");
+				
 				Log.printLine( indent + indent+cloudlet.getResourceName(cloudlet.getResourceId()) + indent + indent + indent + cloudlet.getVmId() +
+						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
+						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+indent+cloudlet.getDeadline()+indent+indent+cloudlet.getPriority());
+				
+				pw.println( indent + indent+cloudlet.getResourceName(cloudlet.getResourceId()) + indent + indent + indent + cloudlet.getVmId() +
 						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
 						indent + indent + cloudlet.getCloudletLength()+ indent + indent +indent +dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+indent+cloudlet.getDeadline()+indent+indent+cloudlet.getPriority());
 			}
 		}
 
+		//printWriter.close();
 	}
 	
 	
@@ -561,12 +578,6 @@ public class twoDataCenter {
                     
                     broker.submitVmList(getVmList());
                     broker.submitCloudletList(getCloudletList());
-                    
-                    //broker.submitVTaskList(getVTaskList());
-                    
-                    
-
-                    //CloudSim.resumeSimulation();
 
                     break;
                 
